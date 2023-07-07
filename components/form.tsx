@@ -1,4 +1,8 @@
-import { Button } from "./ui/button";
+"use client";
+import { formSubmitHandler } from "@/actions";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect } from "react";
+import FormButton from "./form-button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -10,36 +14,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { useToast } from "./ui/use-toast";
 
-interface Props {}
+const Form = () => {
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
 
-const submitHandler = async (formData: FormData) => {
-  "use server";
+  // Reset Params Handler
+  const resetParams = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("status");
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [pathname, router, searchParams]);
 
-  const data = {
-    name: formData.get("full-name"),
-    title: formData.get("title"),
-    email: formData.get("email"),
-  };
+  // Show Toast based on Status
+  useEffect(() => {
+    const status = searchParams.get("status");
+    if (status) {
+      if (status === "error") {
+        toast({
+          title: "Error",
+          description: "Something went wrong.",
+          variant: "destructive",
+        });
 
-  const promise = new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve(data);
-    }, 2000);
-  });
+        resetParams();
+      } else {
+        toast({
+          title: "Success",
+          description: "Your form has been submitted.",
+        });
+        resetParams();
+      }
+    }
+  }, [resetParams, searchParams, toast]);
 
-  const result = await promise;
-  console.log(result);
-};
-
-const Form = async (props: Props) => {
   return (
-    <div className="w-full max-w-lg px-6 py-4 rounded-md">
+    <div className="w-full max-w-lg px-6 space-y-6">
+      <div>
+        <h1 className="text-4xl font-bold">Job Application</h1>
+        <p className="text-lg font-light text-neutral-500">
+          Please fill the form to apply to this role.
+        </p>
+      </div>
       {/* Form */}
-      <form action={submitHandler} className="space-y-6">
+      <form action={formSubmitHandler} className="space-y-6">
         <div className="space-y-3">
           <Label>Full Name</Label>
           <Input
+            required
             name="full-name"
             className="bg-transparent"
             placeholder="Type your email."
@@ -47,7 +72,7 @@ const Form = async (props: Props) => {
         </div>
         <div className="space-y-2">
           <Label>Title</Label>
-          <Select name="title">
+          <Select required name="title">
             <SelectTrigger className="">
               <SelectValue placeholder="Select a title" />
             </SelectTrigger>
@@ -67,15 +92,14 @@ const Form = async (props: Props) => {
         <div className="space-y-2">
           <Label>Email</Label>
           <Input
+            required
             name="email"
             className="bg-transparent"
             type="email"
             placeholder="Type your email."
           />
         </div>
-        <Button type="submit" className="w-full">
-          Submit
-        </Button>
+        <FormButton />
       </form>
     </div>
   );
